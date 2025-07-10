@@ -6,6 +6,7 @@ on:
 
 jobs:
   review:
+    # This job runs only if the 'dhp-pr-review-bot' user or team is requested as a reviewer.
     if: |
       contains(github.event.requested_reviewer.login, 'dhp-pr-review-bot') ||
       contains(github.event.requested_team.name, 'dhp-pr-review-bot')
@@ -25,7 +26,15 @@ jobs:
 
       - name: Run PR Review
         env:
+          # GitHub Token for interacting with the PR
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PR Number to identify the current Pull Request
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          # Repository name (e.g., 'owner/repo_name')
           REPO: ${{ github.repository }}
-        run: python pr_review.py
+          # AWS Bedrock Knowledge Base ID (set this as a GitHub Secret)
+          AWS_BEDROCK_KB_ID: ${{ secrets.AWS_BEDROCK_KB_ID }}
+          # AWS Region where Bedrock is deployed (set this as a GitHub Secret, or hardcode if always same)
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        # Execute the new main bot file
+        run: python pr_review_bot.py

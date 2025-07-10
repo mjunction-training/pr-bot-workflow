@@ -1,1 +1,7 @@
-PyGithub
+PyGithub>=2.6.1
+boto3>=1.39.4
+langchain>=0.3.26
+langchain-core>=0.3.68
+langchain-community>=0.3.27
+langchain-aws>=0.2.27
+botocore>=1.39.4
