@@ -1,0 +1,10 @@
+anyio>=4.9.0
+httpx>=0.28.1
+PyGithub>=2.6.1
+requests>=2.32.4
+pydantic>=2.11.7
+langchain>=0.3.26
+certifi>=2025.7.9
+langchain-core>=0.3.68
+langchain_openai>=0.3.27
+langchain-community>=0.3.27
