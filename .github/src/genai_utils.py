@@ -1,7 +1,7 @@
 import json
 
 from pydantic import SecretStr
-from langchain_openai import OpenAI
+from langchain_openai import OpenAI # Using OpenAI for completion models
 from langchain_core.prompts import PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferWindowMemory
@@ -16,12 +16,12 @@ class GenAIUtils:
     and integrates a local knowledge base for context.
     """
 
-    def __init__(self, knowledge_base: KnowledgeBaseUtils, openai_api_key: str, model_name: str):
+    def __init__(self, samples_dir: str, openai_api_key: str, model_name: str):
         """
         Initializes the GenAIUtils with Langchain components and Knowledge Base.
 
         Args:
-            knowledge_base (KnowledgeBaseUtils): Knowledge base utils to query.
+            samples_dir (str): Path to the directory containing sample code for the KB.
             openai_api_key (str): API key for OpenAI (used for embeddings in KB and the main LLM).
             model_name (str): The name of the LLM model to use (e.g., 'text-davinci-003').
         """
@@ -31,14 +31,29 @@ class GenAIUtils:
         self.knowledge_base = None
         self.openai_api_key = openai_api_key
         self.model_name = model_name
-        self.knowledge_base = knowledge_base
 
+        self.knowledge_base = KnowledgeBaseUtils(samples_dir, openai_api_key)
         if self.knowledge_base.vector_store:
             print("KnowledgeBaseUtils initialized and vector store created.")
         else:
             print("KnowledgeBaseUtils initialized, but no vector store created (e.g., samples dir not found).")
 
         self._initialize_langchain(openai_api_key, model_name)
+
+
+    def _retrieve_context(self, query: str) -> str:
+        """
+        Retrieves relevant context from the knowledge base based on a query.
+
+        Args:
+            query (str): The query to search the knowledge base with.
+
+        Returns:
+            str: A formatted string of retrieved documents, or an empty string if no KB.
+        """
+        if not self.knowledge_base:
+            return ""
+        return self.knowledge_base.query_knowledge_base(query)
 
     def _initialize_langchain(self, openai_api_key: str, model_name: str):
         """
@@ -53,19 +68,13 @@ class GenAIUtils:
                 max_tokens=2048
             )
             print(f"Langchain OpenAI ({model_name}) initialized.")
-
-            # Using ConversationBufferWindowMemory. It will automatically manage ChatMessageHistory.
-            # k=5 means it will keep a window of the last 5 exchanges (input/output pairs)
             self.memory = ConversationBufferWindowMemory(k=5)
             print("ConversationBufferWindowMemory initialized.")
-
-            # Use the prompt template from PromptTemplates, including context placeholder
             self.prompt = PromptTemplate(
-                input_variables=["history", "input", "context"],
+                input_variables=["history", "input"],
                 template=PromptTemplates.DEFAULT_CONVERSATION_TEMPLATE
             )
             print("PromptTemplate initialized.")
-
             self.conversation_chain = ConversationChain(
                 llm=self.llm,
                 memory=self.memory,
@@ -73,7 +82,6 @@ class GenAIUtils:
                 verbose=False
             )
             print("ConversationChain initialized.")
-
         except Exception as e:
             print(f"Error initializing Langchain components: {e}")
             raise
@@ -91,7 +99,11 @@ class GenAIUtils:
             str: The LLM's response.
         """
         try:
-            response = self.conversation_chain.predict(input=input_text, context=context)
+            full_input = input_text
+            if context:
+                full_input = f"<knowledge-base-example>\n{context}\n</knowledge-base-example>\n\n{input_text}"
+
+            response = self.conversation_chain.predict(input=full_input)
             return response
         except Exception as e:
             print(f"An unexpected error occurred during LLM invocation: {e}")
@@ -109,7 +121,7 @@ class GenAIUtils:
         """
 
         print(f"Processing chunk for file: {file_name}")
-        kb_context = self.knowledge_base.query_knowledge_base(file_content_chunk)
+        kb_context = self._retrieve_context(file_content_chunk)
         input_prompt = PromptTemplates.PR_CHUNK_REVIEW_TEMPLATE.format(
             file_name=file_name,
             file_content_chunk=file_content_chunk
