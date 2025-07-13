@@ -4,14 +4,11 @@ class PromptTemplates:
     """
 
     # Default template for the conversation chain, acting as a general instruction
+    # Removed {context} from here; it will be prepended to input in genai_utils.py
     DEFAULT_CONVERSATION_TEMPLATE = """The following is a conversation between a human and an AI assistant.
         The AI assistant is an expert code reviewer and security analyst. It provides constructive feedback,
         identifies potential issues, suggests improvements, and points out security vulnerabilities.
-        
-        <knowledge-base-example>
-        {context}
-        </knowledge-base-example>
-        
+
         Current conversation:
         {history}
         Human: {input}
@@ -24,7 +21,7 @@ class PromptTemplates:
         Identify any security vulnerabilities, code quality issues, or suggestions for refactoring.
         If lines are added, comment on the new code. If lines are deleted, consider if the deletion
         introduces new issues or if the old code had issues that are now removed (and if that's good/bad).
-        
+
         Code Chunk:
         ```
         {file_content_chunk}
@@ -35,7 +32,7 @@ class PromptTemplates:
     FINAL_REVIEW_JSON_TEMPLATE = """Based on our conversation about the Pull Request content,
         please provide a comprehensive review in the following JSON format.
         Ensure all sections are present, even if empty arrays or empty strings.
-        
+
         For 'line_comments':
         - 'diff_line_number': This MUST be the line number within the *diff hunk* itself,
           relative to the start of the hunk. For example, if a hunk starts at line 100 in the file,
@@ -44,7 +41,7 @@ class PromptTemplates:
         - 'side': This MUST be 'LEFT' for lines that were deleted (prefixed with '-') or 'RIGHT' for lines
           that were added (prefixed with '+') or modified (context lines in a diff, or lines that appear
           in the new file).
-        
+
         ```json
         {{
           "pr_summary": "Overall summary of the Pull Request.",
@@ -90,7 +87,8 @@ class PromptTemplates:
           ]
         }}
         ```
-        
+
         Please ensure the JSON is valid and complete. If no issues or suggestions are found for a category,
         provide an empty array or an appropriate message in the string fields.
         """
+

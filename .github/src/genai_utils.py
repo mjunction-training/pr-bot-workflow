@@ -16,12 +16,12 @@ class GenAIUtils:
     and integrates a local knowledge base for context.
     """
 
-    def __init__(self, samples_dir: str, openai_api_key: str, model_name: str):
+    def __init__(self, knowledge_base: KnowledgeBaseUtils, openai_api_key: str, model_name: str):
         """
         Initializes the GenAIUtils with Langchain components and Knowledge Base.
 
         Args:
-            samples_dir (str): Path to the directory containing sample code for the KB.
+            knowledge_base (KnowledgeBaseUtils): Knowledge base utils to query.
             openai_api_key (str): API key for OpenAI (used for embeddings in KB and the main LLM).
             model_name (str): The name of the LLM model to use (e.g., 'text-davinci-003').
         """
@@ -31,29 +31,14 @@ class GenAIUtils:
         self.knowledge_base = None
         self.openai_api_key = openai_api_key
         self.model_name = model_name
+        self.knowledge_base = knowledge_base
 
-        self.knowledge_base = KnowledgeBaseUtils(samples_dir, openai_api_key)
         if self.knowledge_base.vector_store:
             print("KnowledgeBaseUtils initialized and vector store created.")
         else:
             print("KnowledgeBaseUtils initialized, but no vector store created (e.g., samples dir not found).")
 
         self._initialize_langchain(openai_api_key, model_name)
-
-
-    def _retrieve_context(self, query: str) -> str:
-        """
-        Retrieves relevant context from the knowledge base based on a query.
-
-        Args:
-            query (str): The query to search the knowledge base with.
-
-        Returns:
-            str: A formatted string of retrieved documents, or an empty string if no KB.
-        """
-        if not self.knowledge_base:
-            return ""
-        return self.knowledge_base.query_knowledge_base(query)
 
     def _initialize_langchain(self, openai_api_key: str, model_name: str):
         """
@@ -124,7 +109,7 @@ class GenAIUtils:
         """
 
         print(f"Processing chunk for file: {file_name}")
-        kb_context = self._retrieve_context(file_content_chunk)
+        kb_context = self.knowledge_base.query_knowledge_base(file_content_chunk)
         input_prompt = PromptTemplates.PR_CHUNK_REVIEW_TEMPLATE.format(
             file_name=file_name,
             file_content_chunk=file_content_chunk

@@ -33,10 +33,10 @@ class KnowledgeBaseUtils:
         Initializes the local knowledge base using FAISS.
         Attempts to load from disk first. If not found or samples are updated,
         it rebuilds and saves the index.
+        If any error occurs during initialization, self.vector_store will be None,
+        but no exception will be re-raised to allow the main process to continue.
         """
         # Check if the index already exists and the samples directory hasn't been modified
-        # A simple way is to check the modification time of the samples directory
-        # For more robust caching, you might hash file contents or use a version file.
         samples_dir_mtime = os.path.getmtime(self.samples_dir) if os.path.exists(self.samples_dir) else 0
         index_mtime_file = os.path.join(self.index_path, "last_modified.txt")
         last_index_mtime = 0
@@ -91,6 +91,7 @@ class KnowledgeBaseUtils:
         except Exception as e:
             print(f"Error building knowledge base: {e}")
             self.vector_store = None # Ensure vector_store is None on failure
+            # Removed 'raise' here to allow the process to continue
 
     def query_knowledge_base(self, query: str) -> str:
         """

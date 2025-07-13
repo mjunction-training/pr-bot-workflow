@@ -1,7 +1,8 @@
 import os
 
-from github_utils import GitHubUtils
 from genai_utils import GenAIUtils
+from github_utils import GitHubUtils
+from kb_utils import KnowledgeBaseUtils
 
 if __name__ == "__main__":
 
@@ -32,8 +33,21 @@ if __name__ == "__main__":
         exit(0)
 
     try:
+        knowledge_base = KnowledgeBaseUtils(
+            samples_dir = SAMPLES_DIR,
+            openai_api_key = OPENAI_API_KEY
+        )
+        if knowledge_base.vector_store:
+            print("KnowledgeBaseUtils initialized and vector store created.")
+        else:
+            print("KnowledgeBaseUtils initialized, but no vector store created (e.g., samples dir not found).")
+    except Exception as e:
+        print(f"Failed to initialize Knowledge Base: {e}")
+        exit(1)
+
+    try:
         genai_reviewer = GenAIUtils(
-            samples_dir=SAMPLES_DIR,
+            knowledge_base=knowledge_base,
             openai_api_key=OPENAI_API_KEY
         )
         print("GenAIUtils initialized successfully.")
@@ -43,7 +57,7 @@ if __name__ == "__main__":
 
     print("Processing PR files for review...")
     pr_files = github_utils.get_pr_files()
-    if not pr_files:
+    if not pr_files or len(pr_files) == 0:
         print("No files found in PR or error retrieving files. Exiting.")
         exit(0)
 
@@ -51,12 +65,11 @@ if __name__ == "__main__":
         if not file.patch:
             print(f"Skipping file {file.filename} as it has no patch content.")
             continue
-
-        filename = file.filename
-        patch_content = file.patch
-
-        genai_reviewer.process_pr_chunk(filename, patch_content)
-        print(f"Sent patch for {filename} to AI for processing.")
+        genai_reviewer.process_pr_chunk(
+            file_name = file.filename,
+            file_content_chunk = file.patch
+        )
+        print(f"Sent patch for {file.filename} to AI for processing.")
 
     print("Requesting final comprehensive review from AI...")
     ai_review_json = genai_reviewer.get_final_review()
